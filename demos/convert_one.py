@@ -1,6 +1,8 @@
 print('geojson2coco convert one')
 import os
+import json
 from osgeo import gdal
+import geojson
 
 # define path and filename
 data_dir = 'C:/work/githome/PyTorch/geojson2coco/data'
@@ -32,83 +34,106 @@ def read_image_geotransform(img_path_file) :
         print("Pixel Size = ({}, {})".format(geotransform[1], geotransform[5]))
     return geotransform
 
+def read_geojson(geojson_path_file) :
+    with open(geojson_path_file) as f:
+        gj = geojson.load(f)
+    features = gj['features']
+    feature = features[0]
+    ge = feature.geometry
+    coo = ge.coordinates
+    coo0 = coo[0]
+    seg = [i for item in coo0 for i in item[0:2]]
+    return seg
+
+def transform_segs(segs, trans) :
+    x0 = trans[0]
+    dx = trans[1]
+    y0 = trans[3]
+    dy = trans[5]
+    new_segs = [(val - x0) / dx if (0 == idx % 2) else (val - y0) / dy for idx, val in enumerate(segs)]
+    return new_segs
+
+
+class Cocowriter:
+    def __init__(self):
+        self.data = []
+        self.imageIndex = 0
+        self.annoIndex = 0
+
+        return
+
+    def AddImage(self, image, segs):
+
+        # image data
+        image_data = {"file_name": "", "height": 512, "width": 512, "id": self.imageIndex}
+        image_data["file_name"] = image
+
+
+        # annoation data
+        annotation_data = {
+            "segmentation": [],
+            "area": 260334.25,
+            "iscrowd": 0,
+            "image_id": self.imageIndex,
+            "bbox": [-0.5, -0.5, 512.0, 512.0],
+            "category_id": 0,
+            "id": self.annoIndex
+        }
+        annotation_data['segmentation'].append(segs)
+
+
+        self.imageIndex = self.imageIndex + 1
+        self.annoIndex = self.annoIndex + 1
+
+        self.images = image_data
+        self.annos = annotation_data
+        return
+
+    def FillImages(self, data):
+        # fill image data
+        # image_data = {"file_name": "3band_AOI_1_RIO_img135.tif", "height": 512, "width": 512, "id": 0}
+        # image_data['file_name'] = img_file
+        data['images'].append(self.images)
+
+    def FillAnnotation(self, data):
+        data['annotations'].append(self.annos)
+
+    def FillCategory(self, data):
+        category_data = {"supercategory": "person", "id": 0, "name": "person"}
+        data['categories'].append(category_data)
+
+    def Save(self):
+        data = {
+            "info": {},
+            "licenses": [],
+            "images": [],
+            "annotations": [],
+            "categories": []
+        }
+
+        # fill image data
+        self.FillImages(data)
+
+        # fill annotation data
+        self.FillAnnotation(data)
+
+        # fill categories data
+        self.FillCategory(data)
+
+        # write files
+        with open(output_file, "w") as write_file:
+            json.dump(data, write_file)
+
+
 img_geotransform = read_image_geotransform(img_path_file)
-
-print(img_geotransform)
-
-
-import json
-
-data = {
-    "info": {},
-    "licenses": [],
-    "images": [],
-    "annotations": [],
-    "categories": []
-}
-
-# fill image data
-image_data = {"file_name": "3band_AOI_1_RIO_img135.tif", "height": 512, "width": 512, "id": 0}
-image_data['file_name'] = img_file
-data['images'].append(image_data)
-
-# fill annotation data
-annotation_data0 = {
-    "image_id": 289343,
-    "id": 433580,
-    "caption": "A person riding a very tall bike in the street."
-}
-annotation_data1 = {
-    "segmentation": [[10.0, 10.0, 100.0, 100.0, 10.0, 100.0, 10.0, 10.0]],
-    "area": 260334.25,
-    "iscrowd": 0,
-    "image_id": 0,
-    "bbox": [-0.5, -0.5, 512.0, 512.0],
-    "category_id": 0,
-    "id": 0
-}
-
-# data['annotations'].append(annotation_data0)
-data['annotations'].append(annotation_data1)
-
-# fill categories data
-category_data = {"supercategory": "person", "id": 0, "name": "person"}
-data['categories'].append(category_data)
-
-# fill segmentation data
-
-# [{"supercategory": "outlier", "id": 0, "name": "outlier"}, {"supercategory": "horse", "id": 1, "name": "horse"}]
-
-with open(output_file, "w") as write_file:
-    json.dump(data, write_file)
+seg0 = read_geojson(geojson_path_file)
+seg1 = transform_segs(seg0, img_geotransform)
+writer = Cocowriter()
+writer.AddImage(img_file, seg1)
+writer.Save()
 
 
 
-# read geojson
-import geojson
-with open(geojson_path_file) as f:
-    gj = geojson.load(f)
-features = gj['features']
-feature = features[0]
-ge = feature.geometry
-coo = ge.coordinates
-coo0 = coo[0]
-seg = [i for item in coo0 for i in item[0:2]]
-
-
-coordinates = feature.coordinates
-segmentation_data = [x for x in coordinates[0]]
-
-feature_number = len(features)
 
 
 
-a = 0
-
-
-feature0 = features[0]
-
-b = 0
-# import geojson
-# data = geojson.loads(geojson_path_file)
-# print(data)
