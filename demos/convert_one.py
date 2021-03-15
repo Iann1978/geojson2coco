@@ -31,10 +31,21 @@ def read_geojson(geojson_path_file) :
     for feature in features:
         # feature = features[0]
         ge = feature.geometry
-        coos = ge.coordinates
-        for coco in coos:
-            seg = [i for item in coco for i in item[0:2]]
-            segs.append(seg)
+
+        if ge.type == 'Polygon':
+            coos = ge.coordinates
+            for coco in coos:
+                seg = [i for item in coco for i in item[0:2]]
+                segs.append(seg)
+        elif ge.type == 'MultiPolygon':
+            coos = ge.coordinates
+            for coco1 in coos:
+                for coco2 in coco1:
+                    seg = [i for item in coco2 for i in item[0:2]]
+                    segs.append(seg)
+        else:
+            print("Error: Unknown type in geojson file.")
+
     return segs
 
 def transform_segs(segs, trans) :
@@ -137,16 +148,24 @@ if __name__ == '__main__':
     parser.add_argument('--geojson', type=str, default='C:/work/githome/PyTorch/geojson2coco/data/geojson/', help='')
     opt = parser.parse_args()
 
-    if os.path.isdir(opt.image):
+    if os.path.isdir(opt.image) and os.path.isdir(opt.geojson):
         for img_path, _, images in os.walk(opt.image):
             img_path_names = [os.path.join(img_path, i) for i in images]
-            break;
-
-    if os.path.isdir(opt.geojson):
+            break
         for geojson_path, _, geojsons in os.walk(opt.geojson):
             geojson_path_names = [os.path.join(geojson_path, i) for i in geojsons]
-            break;
-    
+            break
+
+    elif os.path.isfile(opt.image) and os.path.isfile(opt.geojson) :
+        img_path_names = [opt.image]
+        geojson_path_names = [opt.geojson]
+
+    else:
+        print('parameter error')
+        exit(1)
+
+
+
 
 
 
@@ -174,9 +193,9 @@ if __name__ == '__main__':
     i = 0
     for img_pathname, geojson_pathname in img_geojson_list:
         convert_one_image(writer, img_pathname, geojson_pathname)
-        i = i+1
-        if i==90:
-            break
+        # i = i+1
+        # if i==90:
+        #     break
 
     writer.Save()
 
