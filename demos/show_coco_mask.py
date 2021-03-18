@@ -12,8 +12,9 @@ imgDir = os.path.join(dataDir, dataType)
 
 coco = COCO(annFile)
 
-catIds = coco.getCatIds(catNms=['person']) # catIds=1 表示人这一类
+catIds = coco.getCatIds(catNms=['horse']) # catIds=1 表示人这一类
 imgIds = coco.getImgIds(catIds=catIds ) # 图片id，许多值
+imageCount = len(imgIds)
 for i in range(len(imgIds)):
     img = coco.loadImgs(imgIds[i])[0]
     imgFile = os.path.join(imgDir, img['file_name'])
