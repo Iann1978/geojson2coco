@@ -87,10 +87,16 @@ class Cocowriter:
 
         # annoation data
         if len(image['segs']) != 0:
-            annotation_data = {"image_id": self.imageIndex, "category_id": 1, "id": self.annoIndex, 'iscrowd': 0,
-                               'segmentation': image['segs'], 'bbox': image['bbox'], 'area': image['area']}
-            self.annos.append(annotation_data)
-            self.annoIndex = self.annoIndex + 1
+            for seg in image['segs']:
+                area = segs_to_area([seg])
+                bbox = list(segs_to_bbox([seg]))
+                bbox[2] = bbox[2] - bbox[0]
+                bbox[3] = bbox[3] - bbox[1]
+
+                annotation_data = {"image_id": self.imageIndex, "category_id": 1, "id": self.annoIndex, 'iscrowd': 0,
+                                   'segmentation': [seg], 'bbox': bbox, 'area': area}
+                self.annos.append(annotation_data)
+                self.annoIndex = self.annoIndex + 1
 
 
         self.imageIndex = self.imageIndex + 1
@@ -169,12 +175,16 @@ def segs_to_area(segs):
 def convert_one_image(writer, image_pathname, geojson_pathname):
     # image_width, image_height, img_geotransform = read_image_geotransform(image_pathname)
 
+    pure_image_file = os.path.basename(image_pathname)
+    pure_geojson_file = os.path.basename(geojson_pathname)
+    print(image_pathname, ":", geojson_pathname)
+
     image = read_image_info(image_pathname)
     segs0 = read_geojson(geojson_pathname)
     segs1 = [transform_segs(seg, image['width'], image['height'], image['geotransform']) for seg in segs0]
 
-    image['area'] = segs_to_area(segs1)
-    image['bbox'] = list(segs_to_bbox(segs1))
+    # image['area'] = segs_to_area(segs1)
+    # image['bbox'] = list(segs_to_bbox(segs1))
     image['pure_image_file'] = os.path.basename(image_pathname)
     # image = {}
     # image['pure_image_file'] = pure_image_file
