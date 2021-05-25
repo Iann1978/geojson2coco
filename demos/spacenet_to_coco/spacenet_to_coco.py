@@ -1,3 +1,7 @@
+import shutil
+
+import argparse
+
 print('spacenet_to_coco')
 
 import os
@@ -191,24 +195,7 @@ class CocoAnnWriter:
         with open(output_file, "w") as write_file:
             json.dump(data, write_file)
 
-if __name__ == '__main__':
-
-    spacenet_path = 'data/spacenet'
-    coco_path = 'data/coco'
-
-    tif_path = os.path.join(spacenet_path, 'PS-RGB')
-    png_path = os.path.join(coco_path, "val2017")
-    geojson_path = os.path.join(spacenet_path,'geojson_buildings')
-
-    for _, _, filenames in os.walk(tif_path):
-        tif_filenames = filenames
-
-    for _, _, filenames in os.walk(geojson_path):
-        geojson_filenames = filenames
-
-
-    tif_geojson_pathfiles = zip(tif_filenames, geojson_filenames)
-
+def ConvertPartly(tif_path, png_path, geojson_path,ann_pathfile, tif_geojson_pathfiles):
 
     annWriter = CocoAnnWriter()
 
@@ -228,35 +215,79 @@ if __name__ == '__main__':
         print("png_pathfile:", png_pathfile)
         print("geojson_pathfile:", geojson_pathfile)
 
-
-
-
-        tif_pathfile1 = 'data/spacenet/PS-RGB/SN2_buildings_train_AOI_4_Shanghai_PS-RGB_img11.tif'
-        png_pathfile1 = 'data/coco/val2017/SN2_buildings_train_AOI_4_Shanghai_PS-RGB_img11.png'
-        geojson_pathfile1 = 'data/spacenet/geojson_buildings/SN2_buildings_train_AOI_4_Shanghai_geojson_buildings_img11.geojson'
-
         convertImage = ConvertImage()
         convertImage.LoadTiff(tif_pathfile)
         convertImage.LoadGeoJson(geojson_pathfile)
         convertImage.SavePng(png_pathfile)
         annWriter.AddImage(convertImage)
 
-    ann_pathfile = 'data/coco/annotations/instances_val2017.json'
+
     annWriter.Save(ann_pathfile)
 
-    # tif_pathfile = 'data/spacenet/PS-RGB/SN2_buildings_train_AOI_4_Shanghai_PS-RGB_img3.tif'
-    # png_pathfile = 'data/coco/val2017/SN2_buildings_train_AOI_4_Shanghai_PS-RGB_img3.png'
-    # geojson_pathfile = 'data/spacenet/geojson_buildings/SN2_buildings_train_AOI_4_Shanghai_geojson_buildings_img3.geojson'
-    # ann_pathfile = 'data/coco/annotations/instances_val2017.json'
-    #
-    #
-    # annWriter = CocoAnnWriter()
-    # convertImage = ConvertImage()
-    # convertImage.LoadTiff(tif_pathfile)
-    # convertImage.LoadGeoJson(geojson_pathfile)
-    # convertImage.SavePng(png_pathfile)
-    #
-    # annWriter.AddImage(convertImage)
-    # annWriter.Save(ann_pathfile)
+def ConvertAll(spacenet_path, coco_path):
+    tif_path = os.path.join(spacenet_path, 'PS-RGB')
+
+    geojson_path = os.path.join(spacenet_path, 'geojson_buildings')
+
+    for _, _, filenames in os.walk(tif_path):
+        tif_filenames = filenames
+
+    for _, _, filenames in os.walk(geojson_path):
+        geojson_filenames = filenames
+
+    tif_geojson_pathfiles = list(zip(tif_filenames, geojson_filenames))
+    total_count = len(tif_geojson_pathfiles)
+    train_count = int(np.floor(total_count * 0.9))
+
+    train_png_path = os.path.join(coco_path, "train2017")
+    train_ann_pathfile = 'data/coco/annotations/instances_train2017.json'
+    train_tif_geojson_pathfiles = tif_geojson_pathfiles[:train_count]
+    ConvertPartly(tif_path, train_png_path, geojson_path, train_ann_pathfile, train_tif_geojson_pathfiles)
+
+    val_png_path = os.path.join(coco_path, "val2017")
+    val_ann_pathfile = 'data/coco/annotations/instances_val2017.json'
+    val_tif_geojson_pathfiles = tif_geojson_pathfiles[train_count:]
+    ConvertPartly(tif_path, val_png_path, geojson_path, val_ann_pathfile, val_tif_geojson_pathfiles)
+
+def PrepareCocoFolder(coco_path):
+    if not os.path.exists(coco_path):
+        os.mkdir(coco_path)
+
+    annpath = os.path.join(coco_path, 'annotations')
+    testpath = os.path.join(coco_path, 'test2017')
+    tranpath = os.path.join(coco_path, 'train2017')
+    valpath = os.path.join(coco_path, 'val2017')
+
+    # if os.path.exists(annpath):
+    #     shutil.rmtree(annpath)
+    # if os.path.exists(tranpath):
+    #     shutil.rmtree(tranpath)
+    # if os.path.exists(valpath):
+    #     shutil.rmtree(valpath)
+
+    if not os.path.exists(annpath):
+        os.mkdir(annpath)
+    if not os.path.exists(tranpath):
+        os.mkdir(tranpath)
+    if not os.path.exists(valpath):
+        os.mkdir(valpath)
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--spacenet_path', type=str, default='data/spacenet', help='')
+    parser.add_argument('--coco_path', type=str, default='data/coco', help='')
+    opt = parser.parse_args()
+
+    spacenet_path = opt.spacenet_path
+    coco_path = opt.coco_path
+
+    PrepareCocoFolder(coco_path)
+
+
+
+    ConvertAll(spacenet_path, coco_path)
+
+
 
 

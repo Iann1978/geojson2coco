@@ -11,22 +11,36 @@ import numpy as np
 # dataDir=r'G:\datasets\coco\2017'
 dataDir = r'C:\work\githome\PyTorch\geojson2coco\data\outcoco'
 dataDir = r'E:\work\githome\PyTorch\mmdetection\mydemos\TestDataFromGEOJSON_Simple\data'
-dataDir = r'G:\datasets\coco\2017'
-dataType = 'val2017'
+# dataDir = r'G:\datasets\coco\2017'
+
+dataDir = r'E:\work\githome\PyTorch\mmdetection\mydemos\SpaceNet_SN2_Shanghai\data'
+dataDir = r'E:\work\githome\PyTorch\geojson2coco\demos\spacenet_to_coco\data\coco'
+
+dataType = 'train2017'
 annFile = '{}/annotations/instances_{}.json'.format(dataDir, dataType)
 imgDir = os.path.join(dataDir, dataType)
 
 coco = COCO(annFile)
 
-catIds = coco.getCatIds('horse')
+catIds = coco.getCatIds('house')
 imgIds = coco.getImgIds(catIds=catIds)
 annIds = coco.getAnnIds(imgIds=imgIds)
 
 imgs = coco.loadImgs(imgIds)
 
+def read_tiff_16bit_3ch(src_pathfile) :
+    img = cv2.imread(src_pathfile, cv2.IMREAD_ANYDEPTH|cv2.IMREAD_COLOR)
+
+    img2 = img.astype(np.float32)
+    img3 = img2 / 1024 * 255
+    img4 = np.clip(img3, 0, 255)
+    img5 = img4.astype(np.uint8)
+    return img5
+
 for img in imgs:
     imgFile = os.path.join(imgDir, img['file_name'])
     image = cv2.imread(imgFile)
+    # image = read_tiff_16bit_3ch(imgFile)
 
     annIds = coco.getAnnIds(imgIds=[img['id']], catIds=catIds)
     anns = coco.loadAnns(annIds)
