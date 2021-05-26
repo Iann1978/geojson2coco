@@ -145,7 +145,7 @@ class CocoAnnWriter:
 
                 annotation_data = {"id": self.annoIndex,
                                    "image_id": self.imageIndex,
-                                   "category_id": 0,
+                                   "category_id": 1,
                                    'iscrowd': 0,
                                    'segmentation': [seg],
                                    'bbox': bbox,
@@ -170,8 +170,8 @@ class CocoAnnWriter:
             data['annotations'].append(anno)
 
     def FillCategory(self, data):
-        data['categories'].append({"supercategory": "house", "id": 0, "name": "house"})
-
+        data['categories'].append({"supercategory": "house", "id": 1, "name": "house"})
+        data['categories'].append({"supercategory": "outer", "id": 2, "name": "outer"})
 
     def Save(self, output_file):
         data = {
@@ -287,6 +287,8 @@ if __name__ == '__main__':
 
 
     ConvertAll(spacenet_path, coco_path)
+
+    print('Finished!!')
 
 
 
